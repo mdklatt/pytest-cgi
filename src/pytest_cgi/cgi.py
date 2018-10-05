@@ -1,4 +1,7 @@
-""" Test fixture for executing a CGI application.
+""" Implementation of the `cgi` test fixture.
+
+This will capture the output of an external application executed via a CGI
+request, e.g. GET or POST.
 
 """
 from io import StringIO
@@ -11,9 +14,6 @@ import pytest
 
 
 __all__ = "cgi", "Request"
-
-
-__version__ = "0.1.0dev1"  # PEP 440
 
 
 class Request(object):

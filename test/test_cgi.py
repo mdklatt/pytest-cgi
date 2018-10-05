@@ -1,4 +1,4 @@
-""" Test suite for the pytest_cgi module.
+""" Test suite for the cgi module.
 
 The script can be executed on its own or incorporated into a larger test suite.
 However the tests are run, be aware of which version of the package is actually
@@ -12,7 +12,7 @@ from json import dumps
 from json import loads
 
 import pytest
-from pytest_cgi import *  # tests __all__
+from pytest_cgi.cgi import *  # tests __all__
 
 
 # TODO: Need to test fixture itself, not just the underlying object.
@@ -40,9 +40,9 @@ def run(monkeypatch):
         response = header + content
         return MockCompletedProcess(0, response)
 
-    # This requires knowledge of the pytest_cgi internals, namely the local
+    # This requires knowledge of the pytest_cgi.cgi internals, namely the local
     # alias for subprocess.run().
-    monkeypatch.setattr("pytest_cgi.run", mock_run)
+    monkeypatch.setattr("pytest_cgi.cgi.run", mock_run)
     return
 
 

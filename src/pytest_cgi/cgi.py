@@ -16,9 +16,14 @@ import pytest
 __all__ = "cgi",
 
 
-class _Request(object):
-    """ Execute an external application using a CGI request.
+class _CgiFixture(object):
+    """ Execute an external CGI application.
 
+    The application is expected to write an HTTP response to STDOUT.
+
+    :var self.status: HTTP status code
+    :var self.header: HTTP header values
+    :var self.content: HTTP content
     """
     def __init__(self):
         """ Initialize this object.
@@ -33,25 +38,24 @@ class _Request(object):
     def get(self, script, query):
         """ Execute a GET request.
 
-        :param script: path to executable CGI script
+        :param script: path to CGI application
         :param query: dict-like object of query parameters
         """
-        # TODO: The script path should be an object-level attribute.
         self._env.update({
             "QUERY_STRING": urlencode(query, doseq=True),
         })
         args = split(script)
         process = run(args, stdout=PIPE, stderr=PIPE, env=self._env)
+        process.check_returncode()
         self._response(process.stdout)
 
     def post(self, script, data, mime="text/plain"):
         """ Execute a POST request.
 
-        :param script: path to executable CGI script
+        :param script: path to CGI application
         :param data: text data or dict-like object of query parameters
         :param mime: data MIME type
         """
-        # TODO: The script path should be an object-level attribute.
         if isinstance(data, dict):
             data = urlencode(data, doseq=True)
             mime = "application/x-www-form-urlencoded"
@@ -62,12 +66,12 @@ class _Request(object):
         args = split(script)
         process = run(args, input=data, stdout=PIPE, stderr=PIPE,
                       env=self._env)
-        # TODO: Check return code.
+        process.check_returncode()
         self._response(process.stdout)
         return
 
     def _response(self, message):
-        """ Parse the HTTP response returned by the CGI script.
+        """ Parse the HTTP response returned by the application.
 
         :param message:
         :return:
@@ -77,7 +81,8 @@ class _Request(object):
         # to be used directly.
         with StringIO(message.decode()) as stream:
             # FIXME: Won't work for binary content.
-            version, self.status, status = stream.readline().strip().split()
+            line = stream.readline().strip()
+            self.status = int(line.split()[1])  # integer status
             while True:
                 # Parse response header.
                 line = stream.readline().strip()
@@ -99,11 +104,8 @@ class _Request(object):
 
 @pytest.fixture
 def cgi():
-    """ Factory function for a request object.
+    """ Factory function for a _CgiFixture object.
 
-    When used with pytest, the `cgi` fixture represents a _Request object.
-
-    :return: request object
+    :return: new _CgiFixture object
     """
-    # TODO: Get script name from config? Fixture parameters?
-    return _Request()
+    return _CgiFixture()

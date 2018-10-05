@@ -7,7 +7,6 @@ precedence over the version in this project directory. Use a virtualenv test
 environment or setuptools develop mode to test against the development version.
 
 """
-from collections import namedtuple
 from json import dumps
 from json import loads
 
@@ -19,10 +18,8 @@ def run(monkeypatch):
     """ Mock the subprocess.run() function for testing.
 
     """
-    def mock_run(*args, **kwargs):
+    def mock_run(*_, **kwargs):
         """ Create a mock external process result for testing. """
-        attr = "returncode", "stdout"
-        MockCompletedProcess = namedtuple("MockCompletedProcess", attr)
         content = dumps({
             "stdin": kwargs.get("input"),
             "env": kwargs.get("env"),
@@ -34,12 +31,27 @@ def run(monkeypatch):
             b"\n",
         ))
         response = header + content
-        return MockCompletedProcess(0, response)
+        return _MockCompletedProcess(response)
 
     # This requires knowledge of the pytest_cgi.cgi internals, namely the local
     # alias for subprocess.run().
     monkeypatch.setattr("pytest_cgi.cgi.run", mock_run)
     return
+
+
+class _MockCompletedProcess(object):
+    """ Mock a subprocess.CompleteProcess instance.
+
+    """
+    def __init__(self, stdout):
+        """ Initialize this object.
+
+        :param stdout: sequence of bytes sent to STDOUT
+        """
+        self.stdout = stdout
+        self.returncode = 0
+        self.check_returncode = lambda: None  # always a "success"
+        return
 
 
 class CgiFixtureTest(object):
@@ -51,22 +63,24 @@ class CgiFixtureTest(object):
     """
     @pytest.mark.usefixtures("run")
     def test_get(self, cgi):
-        """ Test the get() method
+        """ Test the get() method.
 
         """
         cgi.get("/path/to/script", {"param": 123})
+        assert 200 == cgi.status
         assert "application/json" == cgi.header["Content-Type"]
         content = loads(cgi.content)
-        assert content["env"]["QUERY_STRING"] == "param=123"
+        assert "param=123" == content["env"]["QUERY_STRING"]
         return
 
     @pytest.mark.usefixtures("run")
     def test_post(self, cgi):
-        """ Test the post() method
+        """ Test the post() method.
 
         """
         cgi.post("/path/to/script", "content")
-        assert cgi.header["Content-Type"] == "application/json"
+        assert 200 == cgi.status
+        assert "application/json" == cgi.header["Content-Type"]
         content = loads(cgi.content)
         assert "content" == content["stdin"]
         return

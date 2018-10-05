@@ -13,10 +13,10 @@ from urllib.parse import urlencode
 import pytest
 
 
-__all__ = "cgi", "Request"
+__all__ = "cgi",
 
 
-class Request(object):
+class _Request(object):
     """ Execute an external application using a CGI request.
 
     """
@@ -99,9 +99,11 @@ class Request(object):
 
 @pytest.fixture
 def cgi():
-    """ Request factory.
+    """ Factory function for a request object.
 
-    :return: Request object
+    When used with pytest, the `cgi` fixture represents a _Request object.
+
+    :return: request object
     """
     # TODO: Get script name from config? Fixture parameters?
-    return Request()
+    return _Request()

@@ -1,4 +1,4 @@
-""" Test suite for the cgi module.
+""" Test suite for the cgi fixture.
 
 The script can be executed on its own or incorporated into a larger test suite.
 However the tests are run, be aware of which version of the package is actually
@@ -12,10 +12,6 @@ from json import dumps
 from json import loads
 
 import pytest
-from pytest_cgi.cgi import *  # tests __all__
-
-
-# TODO: Need to test fixture itself, not just the underlying object.
 
 
 @pytest.fixture
@@ -46,42 +42,34 @@ def run(monkeypatch):
     return
 
 
-class RequestTest(object):
-    """ Unit tests for the Request class.
+class CgiFixtureTest(object):
+    """ Unit tests for the cgi fixture.
+
+    This requires the plugin to be installed into the test environment using
+    setup.py; it is not sufficient to add the source directory to PYTHONPATH.
 
     """
     @pytest.mark.usefixtures("run")
-    def test_get(self):
+    def test_get(self, cgi):
         """ Test the get() method
 
         """
-        request = Request()
-        request.get("/path/to/script", {"param": 123})
-        assert "application/json" == request.header["Content-Type"]
-        content = loads(request.content)
+        cgi.get("/path/to/script", {"param": 123})
+        assert "application/json" == cgi.header["Content-Type"]
+        content = loads(cgi.content)
         assert content["env"]["QUERY_STRING"] == "param=123"
         return
 
     @pytest.mark.usefixtures("run")
-    def test_post(self):
+    def test_post(self, cgi):
         """ Test the post() method
 
         """
-        request = Request()
-        request.post("/path/to/script", "content")
-        assert request.header["Content-Type"] == "application/json"
-        content = loads(request.content)
+        cgi.post("/path/to/script", "content")
+        assert cgi.header["Content-Type"] == "application/json"
+        content = loads(cgi.content)
         assert "content" == content["stdin"]
         return
-
-
-@pytest.mark.usefixtures("run")
-def test_cgi(cgi):
-    """ Test the cgi fixture.
-
-    """
-    cgi.get("/path/to/script", {"param": 123})
-    assert "application/json" == cgi.header["Content-Type"]
 
 
 # Make the module executable.

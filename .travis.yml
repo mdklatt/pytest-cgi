@@ -1,0 +1,22 @@
+## Travis CI configuration for the pytest-cgi plugin.
+##
+##   <https://travis-ci.org/mdklatt/pytest-cgi>
+##
+language: python
+
+python:
+  # TODO: Add 3.7 once Travis begins supporting it.
+  - "3.6"
+
+branches:
+  only:
+    - master
+    - dev
+
+sudo: false
+
+install:
+  - python -m pip install . -r requirements.txt
+
+script:
+  - pytest --verbose test/

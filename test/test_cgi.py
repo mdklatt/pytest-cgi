@@ -24,11 +24,11 @@ def run(monkeypatch):
             "stdin": kwargs.get("input"),
             "env": kwargs.get("env"),
         }).encode()
-        header = b"\n".join((
-            b"HTTP/1.1 200 OK",
-            b"Content-Type: application/json",
-            "Content-Length: {:d}".format(len(content)).encode(),
-            b"\n",
+        header = b"".join((
+            b"HTTP/1.1 200 OK\n",
+            b"Content-Type: application/json\n",
+            "Content-Length: {:d}\n".format(len(content)).encode(),
+            b"\r\n",
         ))
         response = header + content
         return _MockCompletedProcess(response)

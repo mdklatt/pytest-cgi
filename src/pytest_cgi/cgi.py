@@ -70,35 +70,26 @@ class _CgiFixture(object):
         self._response(process.stdout)
         return
 
-    def _response(self, message):
-        """ Parse the HTTP response returned by the application.
+    def _response(self, response):
+        """ Parse the response returned by the application.
 
-        :param message:
+        :param response: sequence of bytes containing the HTTP response
         :return:
         """
-        # Surely there's a library that will do this? The HTTPResponse class in
-        # http.client does more than just parse a response, and is not supposed
-        # to be used directly.
-        with StringIO(message.decode()) as stream:
-            # FIXME: Won't work for binary content.
-            line = stream.readline().strip()
-            self.status = int(line.split()[1])  # integer status
-            while True:
-                # Parse response header.
-                line = stream.readline().strip()
-                if not line:
-                    # End of header.
-                    break
-                key, value = (item.strip() for item in line.split(":"))
-                try:
-                    self.header[key].append(value)
-                except KeyError:
-                    # First instance of this key.
-                    self.header[key] = value
-                except AttributeError:
-                    # Second instance of this key, start a list.
-                    self.header[key] = [self.header[key], value]
-            self.content = stream.read()
+        # TODO: Surely there's a built-in module that will do this?
+        header, self.content = response.split(b"\r\n", 1)
+        lines = header.decode().strip().split("\n")
+        self.status = int(lines[0].split()[1])  # integer status
+        for line in lines[1:]:
+            key, value = (item.strip() for item in line.split(":"))
+            try:
+                self.header[key].append(value)
+            except KeyError:
+                # First instance of this key.
+                self.header[key] = value
+            except AttributeError:
+                # Second instance of this key, start a list.
+                self.header[key] = [self.header[key], value]
         return
 
 

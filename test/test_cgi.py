@@ -1,4 +1,4 @@
-""" Test suite for the cgi module.
+""" Test suite for the pytest_cgi module.
 
 The script can be executed on its own or incorporated into a larger test suite.
 However the tests are run, be aware of which version of the package is actually
@@ -12,7 +12,7 @@ from json import dumps
 from json import loads
 
 import pytest
-from cgi import *  # tests __all__
+from pytest_cgi import *  # tests __all__
 
 
 # TODO: Need to test fixture itself, not just the underlying object.
@@ -40,14 +40,14 @@ def run(monkeypatch):
         response = header + content
         return MockCompletedProcess(0, response)
 
-    # This requires knowledge of the cgi internals, namely the local alias for
-    # subprocess.run().
-    monkeypatch.setattr("cgi.run", mock_run)
+    # This requires knowledge of the pytest_cgi internals, namely the local
+    # alias for subprocess.run().
+    monkeypatch.setattr("pytest_cgi.run", mock_run)
     return
 
 
 class RequestTest(object):
-    """ Unit tests for the cgi.Request class.
+    """ Unit tests for the Request class.
 
     """
     @pytest.mark.usefixtures("run")
@@ -73,6 +73,15 @@ class RequestTest(object):
         content = loads(request.content)
         assert "content" == content["stdin"]
         return
+
+
+@pytest.mark.usefixtures("run")
+def test_cgi(cgi):
+    """ Test the cgi fixture.
+
+    """
+    cgi.get("/path/to/script", {"param": 123})
+    assert "application/json" == cgi.header["Content-Type"]
 
 
 # Make the module executable.

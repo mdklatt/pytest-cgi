@@ -13,7 +13,7 @@ import pytest
 __all__ = "cgi", "Request"
 
 
-__version__ = "0.1.0dev0"  # PEP 440
+__version__ = "0.1.0dev1"  # PEP 440
 
 
 class Request(object):

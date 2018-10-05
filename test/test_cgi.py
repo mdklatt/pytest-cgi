@@ -74,15 +74,19 @@ class CgiFixtureTest(object):
         return
 
     @pytest.mark.usefixtures("run")
-    def test_post(self, cgi):
+    @pytest.mark.parametrize("data", ["param=123", {"param": 123}])
+    def test_post(self, cgi, data):
         """ Test the post() method.
 
+        The parametrization tests the method with both normal data and query
+        parameters.
+
         """
-        cgi.post("/path/to/script", "content")
+        cgi.post("/path/to/script", data)
         assert 200 == cgi.status
         assert "application/json" == cgi.header["Content-Type"]
         content = loads(cgi.content)
-        assert "content" == content["stdin"]
+        assert "param=123" == content["stdin"]
         return
 
 

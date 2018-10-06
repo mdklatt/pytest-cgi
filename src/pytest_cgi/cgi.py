@@ -42,6 +42,7 @@ class _CgiFixture(object):
         :param query: dict-like object of query parameters
         """
         self._env.update({
+            "REQUEST_METHOD": "GET",
             "QUERY_STRING": urlencode(query, doseq=True),
         })
         args = split(script)
@@ -60,6 +61,7 @@ class _CgiFixture(object):
             data = urlencode(data, doseq=True)
             mime = "application/x-www-form-urlencoded"
         self._env.update({
+            "REQUEST_METHOD": "POST",
             "CONTENT_LENGTH": len(data),
             "CONTENT_TYPE": mime,
         })

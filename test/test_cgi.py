@@ -28,7 +28,9 @@ def run(monkeypatch):
             b"HTTP/1.1 200 OK\n",
             b"Content-Type: application/json\n",
             "Content-Length: {:d}\n".format(len(content)).encode(),
-            b"\r\n",
+            b"Set-Cookie: name=cookie1\n",
+            b"Set-Cookie: name=cookie2\n",
+            b"\n",
         ))
         response = header + content
         return _MockCompletedProcess(response)
@@ -68,7 +70,8 @@ class CgiFixtureTest(object):
         """
         cgi.get("/path/to/script", {"param": 123})
         assert 200 == cgi.status
-        assert "application/json" == cgi.header["Content-Type"]
+        assert "application/json" == cgi.header["content-type"]
+        assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
         content = loads(cgi.content)
         assert "param=123" == content["env"]["QUERY_STRING"]
         return
@@ -84,7 +87,8 @@ class CgiFixtureTest(object):
         """
         cgi.post("/path/to/script", data)
         assert 200 == cgi.status
-        assert "application/json" == cgi.header["Content-Type"]
+        assert "application/json" == cgi.header["content-type"]
+        assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
         content = loads(cgi.content)
         assert "param=123" == content["stdin"]
         return

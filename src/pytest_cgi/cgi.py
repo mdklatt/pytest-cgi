@@ -4,6 +4,7 @@ This will capture the output of an external application executed via a CGI
 request, e.g. GET or POST.
 
 """
+from io import BytesIO
 from shlex import split
 from subprocess import PIPE
 from subprocess import run
@@ -74,12 +75,22 @@ class _CgiFixture(object):
 
         :param response: sequence of bytes containing the HTTP response
         """
-        # TODO: Surely there's a built-in module that will do this?
-        header, self.content = response.split(b"\r\n", 1)
-        lines = header.decode().strip().split("\n")
-        self.status = int(lines[0].split()[1])  # integer status
-        for line in lines[1:]:
+        # Be lenient about accepting non-standard headers.
+        # https://tools.ietf.org/html/rfc7230
+        header = []
+        with BytesIO(response) as stream:
+            for line in stream:
+                line = line.decode().strip()
+                if not line:
+                    break
+                header.append(line)
+            self.content = stream.read()
+        if header[0].lstrip().startswith("HTTP"):
+            self.status = int(header[0].split()[1])  # integer status
+            header.pop(0)
+        for line in header:
             key, value = (item.strip() for item in line.split(":"))
+            key = key.lower()  # field names are not case sensitive
             try:
                 self.header[key].append(value)
             except KeyError:

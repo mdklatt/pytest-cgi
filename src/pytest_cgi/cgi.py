@@ -4,7 +4,6 @@ This will capture the output of an external application executed via a CGI
 request, e.g. GET or POST.
 
 """
-from io import StringIO
 from shlex import split
 from subprocess import PIPE
 from subprocess import run
@@ -47,7 +46,6 @@ class _CgiFixture(object):
         })
         args = split(script)
         process = run(args, stdout=PIPE, stderr=PIPE, env=self._env)
-        process.check_returncode()
         self._response(process.stdout)
 
     def post(self, script, data, mime="text/plain"):
@@ -68,7 +66,6 @@ class _CgiFixture(object):
         args = split(script)
         process = run(args, input=data, stdout=PIPE, stderr=PIPE,
                       env=self._env)
-        process.check_returncode()
         self._response(process.stdout)
         return
 
@@ -76,7 +73,6 @@ class _CgiFixture(object):
         """ Parse the response returned by the application.
 
         :param response: sequence of bytes containing the HTTP response
-        :return:
         """
         # TODO: Surely there's a built-in module that will do this?
         header, self.content = response.split(b"\r\n", 1)

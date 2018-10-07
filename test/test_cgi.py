@@ -71,7 +71,7 @@ def run(monkeypatch):
             "data": data,
             "query": kwargs["env"].get("QUERY_STRING"),
         }).encode()
-        header = b"".join((
+        headers = b"".join((
             b"HTTP/1.1 200 OK\n",
             b"Content-Type: application/json\n",
             "Content-Length: {:d}\n".format(len(content)).encode(),
@@ -79,7 +79,7 @@ def run(monkeypatch):
             b"Set-Cookie: name=cookie2\n",
             b"\n",
         ))
-        response = header + content
+        response = headers + content
         return _MockCompletedProcess(response)
 
     # This requires knowledge of the pytest_cgi.cgi internals, namely the local
@@ -133,8 +133,8 @@ class CgiFixtureTest(object):
         """
         cgi.get({"param": 123})
         assert 200 == cgi.status
-        assert "application/json" == cgi.header["content-type"]
-        assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
+        assert "application/json" == cgi.headers["content-type"]
+        assert ["name=cookie1", "name=cookie2"] == cgi.headers["set-cookie"]
         content = loads(cgi.content)
         assert "param=123" == content["query"]
         assert not content["data"]
@@ -153,8 +153,8 @@ class CgiFixtureTest(object):
         """
         cgi.post(data)
         assert 200 == cgi.status
-        assert "application/json" == cgi.header["content-type"]
-        assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
+        assert "application/json" == cgi.headers["content-type"]
+        assert ["name=cookie1", "name=cookie2"] == cgi.headers["set-cookie"]
         content = loads(cgi.content)
         assert "param=123" == content["data"]
         assert not content["query"]

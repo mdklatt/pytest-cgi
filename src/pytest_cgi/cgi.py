@@ -33,7 +33,7 @@ class _Script(object):
 
         :param script: CGI script URL or local path
         """
-        self.header = {}
+        self.headers = {}
         self.content = None
         self.status = None
         self._script = script
@@ -103,29 +103,29 @@ class LocalScript(_Script):
         :param response: sequence of bytes containing the HTTP response
         """
         # Be lenient about accepting non-standard headers.
-        # https://tools.ietf.org/html/rfc7230
-        header = []
+        # <https://tools.ietf.org/html/rfc7230>
+        headers = []
         with BytesIO(response) as stream:
             for line in stream:
                 line = line.decode().strip()
                 if not line:
                     break
-                header.append(line)
+                headers.append(line)
             self.content = stream.read()
-        if header[0].lstrip().startswith("HTTP"):
-            self.status = int(header[0].split()[1])  # integer status
-            header.pop(0)
-        for line in header:
+        if headers[0].lstrip().startswith("HTTP"):
+            self.status = int(headers[0].split()[1])  # integer status
+            headers.pop(0)
+        for line in headers:
             key, value = (item.strip() for item in line.split(":"))
             key = key.lower()  # field names are not case sensitive
             try:
-                self.header[key].append(value)
+                self.headers[key].append(value)
             except KeyError:
                 # First instance of this key.
-                self.header[key] = value
+                self.headers[key] = value
             except AttributeError:
                 # Second instance of this key, start a list.
-                self.header[key] = [self.header[key], value]
+                self.headers[key] = [self.headers[key], value]
         return
 
 
@@ -175,13 +175,13 @@ class RemoteScript(_Script):
             # the same key, e.g. for Set-Cookie headers.
             key = key.lower()  # field names are not case sensitive
             try:
-                self.header[key].append(value)
+                self.headers[key].append(value)
             except KeyError:
                 # First instance of this key.
-                self.header[key] = value
+                self.headers[key] = value
             except AttributeError:
                 # Second instance of this key, start a list.
-                self.header[key] = [self.header[key], value]
+                self.headers[key] = [self.headers[key], value]
         return
 
 

@@ -9,6 +9,8 @@ from shlex import split
 from subprocess import PIPE
 from subprocess import run
 from urllib.parse import urlencode
+from urllib.parse import urlparse
+from urllib.request import urlopen
 
 import pytest
 
@@ -19,7 +21,7 @@ __all__ = "cgi",
 class _CgiFixture(object):
     """ Execute an external CGI application.
 
-    The application is expected to write an HTTP response to STDOUT.
+    The application is expected to output an HTTP response.
 
     :var self.status: HTTP status code
     :var self.header: HTTP header values
@@ -28,13 +30,74 @@ class _CgiFixture(object):
     def __init__(self, script):
         """ Initialize this object.
 
-        :param script: path to CGI script
+        :param script: location of the CGI script
         """
         self.header = {}
         self.content = None
         self.status = None
-        self._env = {}
         self._script = script
+        return
+
+    def get(self, query):
+        """ Execute a GET request.
+
+        :param query: dict-like object of query parameters
+        """
+        raise NotImplementedError
+
+    def post(self, data, mime="text/plain"):
+        """ Execute a POST request.
+
+        :param data: text data or dict-like object of query parameters
+        :param mime: data MIME type
+        """
+        raise NotImplementedError
+
+    def _response(self, response):
+        """ Parse the response returned by the application.
+
+        :param response: sequence of bytes containing the HTTP response
+        """
+        # Be lenient about accepting non-standard headers.
+        # https://tools.ietf.org/html/rfc7230
+        header = []
+        with BytesIO(response) as stream:
+            for line in stream:
+                line = line.decode().strip()
+                if not line:
+                    break
+                header.append(line)
+            self.content = stream.read()
+        if header[0].lstrip().startswith("HTTP"):
+            self.status = int(header[0].split()[1])  # integer status
+            header.pop(0)
+        for line in header:
+            key, value = (item.strip() for item in line.split(":"))
+            key = key.lower()  # field names are not case sensitive
+            try:
+                self.header[key].append(value)
+            except KeyError:
+                # First instance of this key.
+                self.header[key] = value
+            except AttributeError:
+                # Second instance of this key, start a list.
+                self.header[key] = [self.header[key], value]
+        return
+
+
+class _CgiLocal(_CgiFixture):
+    """ Execute a local CGI application.
+
+    The fixture simulates a CGI request environment for the application.
+
+    """
+    def __init__(self, script):
+        """ Initialize this object.
+
+        :param script: path to local CGI script
+        """
+        super(_CgiLocal, self).__init__(script)
+        self._env = {}
         return
 
     def get(self, query):
@@ -70,37 +133,6 @@ class _CgiFixture(object):
         self._response(process.stdout)
         return
 
-    def _response(self, response):
-        """ Parse the response returned by the application.
-
-        :param response: sequence of bytes containing the HTTP response
-        """
-        # Be lenient about accepting non-standard headers.
-        # https://tools.ietf.org/html/rfc7230
-        header = []
-        with BytesIO(response) as stream:
-            for line in stream:
-                line = line.decode().strip()
-                if not line:
-                    break
-                header.append(line)
-            self.content = stream.read()
-        if header[0].lstrip().startswith("HTTP"):
-            self.status = int(header[0].split()[1])  # integer status
-            header.pop(0)
-        for line in header:
-            key, value = (item.strip() for item in line.split(":"))
-            key = key.lower()  # field names are not case sensitive
-            try:
-                self.header[key].append(value)
-            except KeyError:
-                # First instance of this key.
-                self.header[key] = value
-            except AttributeError:
-                # Second instance of this key, start a list.
-                self.header[key] = [self.header[key], value]
-        return
-
 
 @pytest.fixture
 def cgi(request):
@@ -112,4 +144,10 @@ def cgi(request):
     :param request: pytest request context
     :return: new _CgiFixture object
     """
-    return _CgiFixture(request.param)
+    script = request.param
+    scheme = urlparse(request.param).scheme
+    if scheme.startswith("http"):
+        raise NotImplementedError("URL calls not implemented")
+    elif scheme:
+        raise ValueError(f"invalid scheme: {scheme:s}")
+    return _CgiLocal(script)

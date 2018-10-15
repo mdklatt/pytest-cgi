@@ -25,34 +25,34 @@ class _CgiFixture(object):
     :var self.header: HTTP header values
     :var self.content: HTTP content
     """
-    def __init__(self):
+    def __init__(self, script):
         """ Initialize this object.
 
+        :param script: path to CGI script
         """
         self.header = {}
         self.content = None
         self.status = None
         self._env = {}
+        self._script = script
         return
 
-    def get(self, script, query):
+    def get(self, query):
         """ Execute a GET request.
 
-        :param script: path to CGI application
         :param query: dict-like object of query parameters
         """
         self._env.update({
             "REQUEST_METHOD": "GET",
             "QUERY_STRING": urlencode(query, doseq=True),
         })
-        args = split(script)
+        args = split(self._script)
         process = run(args, stdout=PIPE, stderr=PIPE, env=self._env)
         self._response(process.stdout)
 
-    def post(self, script, data, mime="text/plain"):
+    def post(self, data, mime="text/plain"):
         """ Execute a POST request.
 
-        :param script: path to CGI application
         :param data: text data or dict-like object of query parameters
         :param mime: data MIME type
         """
@@ -64,7 +64,7 @@ class _CgiFixture(object):
             "CONTENT_LENGTH": len(data),
             "CONTENT_TYPE": mime,
         })
-        args = split(script)
+        args = split(self._script)
         process = run(args, input=data, stdout=PIPE, stderr=PIPE,
                       env=self._env)
         self._response(process.stdout)
@@ -103,9 +103,13 @@ class _CgiFixture(object):
 
 
 @pytest.fixture
-def cgi():
+def cgi(request):
     """ Factory function for a _CgiFixture object.
 
+    The CGI script to execute is passed in as the parameter of the pytest
+    request context.
+
+    :param request: pytest request context
     :return: new _CgiFixture object
     """
-    return _CgiFixture()
+    return _CgiFixture(request.param)

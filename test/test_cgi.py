@@ -64,11 +64,12 @@ class CgiFixtureTest(object):
 
     """
     @pytest.mark.usefixtures("run")
+    @pytest.mark.parametrize("cgi", ["/path/to/script"], indirect=True)
     def test_get(self, cgi):
         """ Test the get() method.
 
         """
-        cgi.get("/path/to/script", {"param": 123})
+        cgi.get({"param": 123})
         assert 200 == cgi.status
         assert "application/json" == cgi.header["content-type"]
         assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
@@ -77,6 +78,7 @@ class CgiFixtureTest(object):
         return
 
     @pytest.mark.usefixtures("run")
+    @pytest.mark.parametrize("cgi", ["/path/to/script"], indirect=True)
     @pytest.mark.parametrize("data", ["param=123", {"param": 123}])
     def test_post(self, cgi, data):
         """ Test the post() method.
@@ -85,7 +87,7 @@ class CgiFixtureTest(object):
         parameters.
 
         """
-        cgi.post("/path/to/script", data)
+        cgi.post(data)
         assert 200 == cgi.status
         assert "application/json" == cgi.header["content-type"]
         assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]

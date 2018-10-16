@@ -7,10 +7,53 @@ precedence over the version in this project directory. Use a virtualenv test
 environment or setuptools develop mode to test against the development version.
 
 """
+from http.client import HTTPMessage
 from json import dumps
 from json import loads
+from urllib.parse import urlparse
 
 import pytest
+
+
+class _MockCompletedProcess(object):
+    """ Mock a subprocess.CompleteProcess instance.
+
+    """
+    def __init__(self, stdout):
+        """ Initialize this object.
+
+        :param stdout: sequence of bytes sent to STDOUT
+        """
+        self.stdout = stdout
+        self.returncode = 0
+        self.check_returncode = lambda: None  # always a "success"
+        return
+
+
+class _MockResponse(object):
+    """ A mock urllib.response.
+
+    """
+    def __init__(self, data, headers):
+        """ Initialize this object.
+
+        """
+        self.headers = headers
+        self.read = lambda: data
+        self.getcode = lambda: 200
+        return
+
+    def __enter__(self):
+        """ Enter a runtime context.
+
+        """
+        return self
+
+    def __exit__(self, *args):
+        """ Exit a runtime context.
+
+        """
+        return
 
 
 @pytest.fixture
@@ -41,19 +84,33 @@ def run(monkeypatch):
     return
 
 
-class _MockCompletedProcess(object):
-    """ Mock a subprocess.CompleteProcess instance.
+@pytest.fixture
+def urlopen(monkeypatch):
+    """ Mock the urlopen() function for testing.
 
     """
-    def __init__(self, stdout):
-        """ Initialize this object.
+    def mock_urlopen(request, *_, **__):
+        """ Create a mock HTTP response. """
+        # request has data, header, method
+        data = dumps({
+            "data": request.data.decode() if request.data else None,
+            "query": urlparse(request.full_url).query
+        }).encode()
+        fields = (
+            ("Content-Type", "application/json"),
+            ("Set-Cookie", "name=cookie1"),
+            ("Set-Cookie", "name=cookie2"),
+        )
+        headers = HTTPMessage()
+        for key, value in fields:
+            headers[key] = value
+        return _MockResponse(data, headers)
 
-        :param stdout: sequence of bytes sent to STDOUT
-        """
-        self.stdout = stdout
-        self.returncode = 0
-        self.check_returncode = lambda: None  # always a "success"
-        return
+    # This requires knowledge of the pytest_cgi.cgi internals, namely the local
+    # alias for urllib.request.urlopen().
+    urlopen = "pytest_cgi.cgi.urlopen"
+    monkeypatch.setattr(urlopen, mock_urlopen)
+    return
 
 
 class CgiFixtureTest(object):
@@ -65,7 +122,7 @@ class CgiFixtureTest(object):
     """
     @pytest.mark.usefixtures("run")
     @pytest.mark.parametrize("cgi", ["/path/to/script"], indirect=True)
-    def test_get(self, cgi):
+    def test_get_local(self, cgi):
         """ Test the get() method.
 
         """
@@ -77,10 +134,25 @@ class CgiFixtureTest(object):
         assert "param=123" == content["env"]["QUERY_STRING"]
         return
 
+    @pytest.mark.usefixtures("urlopen")
+    @pytest.mark.parametrize("cgi", ["https://www.example.com"], indirect=True)
+    def test_get_remote(self, cgi):
+        """ Test the get() method.
+
+        """
+        cgi.get({"param": 123})
+        assert 200 == cgi.status
+        assert "application/json" == cgi.header["content-type"]
+        assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
+        content = loads(cgi.content)
+        assert "param=123" == content["query"]
+        assert not content["data"]
+        return
+
     @pytest.mark.usefixtures("run")
     @pytest.mark.parametrize("cgi", ["/path/to/script"], indirect=True)
     @pytest.mark.parametrize("data", ["param=123", {"param": 123}])
-    def test_post(self, cgi, data):
+    def test_post_local(self, cgi, data):
         """ Test the post() method.
 
         The parametrization tests the method with both normal data and query
@@ -93,6 +165,26 @@ class CgiFixtureTest(object):
         assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
         content = loads(cgi.content)
         assert "param=123" == content["stdin"]
+        return
+
+
+    @pytest.mark.usefixtures("urlopen")
+    @pytest.mark.parametrize("cgi", ["https://www.example.com"], indirect=True)
+    @pytest.mark.parametrize("data", [b"param=123", {"param": 123}])
+    def test_post_remote(self, cgi, data):
+        """ Test the post() method.
+
+        The parametrization tests the method with both normal data and query
+        parameters.
+
+        """
+        cgi.post(data)
+        assert 200 == cgi.status
+        assert "application/json" == cgi.header["content-type"]
+        assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
+        content = loads(cgi.content)
+        assert "param=123" == content["data"]
+        assert not content["query"]
         return
 
 

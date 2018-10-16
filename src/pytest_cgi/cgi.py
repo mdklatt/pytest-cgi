@@ -20,7 +20,7 @@ __all__ = "cgi",
 
 
 class _CgiFixture(object):
-    """ Execute an external CGI application.
+    """ Execute an external CGI script.
 
     The application is expected to output an HTTP response.
 
@@ -56,7 +56,7 @@ class _CgiFixture(object):
 
 
 class _CgiRemote(_CgiFixture):
-    """ Execute a remote CGI application.
+    """ Execute a remote CGI script.
 
     The application is called via its URL.
 
@@ -114,9 +114,9 @@ class _CgiRemote(_CgiFixture):
 
 
 class _CgiLocal(_CgiFixture):
-    """ Execute a local CGI application.
+    """ Execute a local CGI script.
 
-    The fixture simulates a CGI request environment for the application.
+    The fixture simulates a CGI request environment for the scrpt.
 
     """
     def __init__(self, script):
@@ -149,7 +149,7 @@ class _CgiLocal(_CgiFixture):
         :param mime: data MIME type
         """
         if isinstance(data, dict):
-            data = urlencode(data, doseq=True)
+            data = urlencode(data, doseq=True).encode()
             mime = "application/x-www-form-urlencoded"
         self._env.update({
             "REQUEST_METHOD": "POST",

@@ -64,8 +64,8 @@ def run(monkeypatch):
     def mock_run(*_, **kwargs):
         """ Create a mock external process result for testing. """
         content = dumps({
-            "stdin": kwargs.get("input"),
-            "env": kwargs.get("env"),
+            "data": kwargs["input"].decode() if "input" in kwargs else None,
+            "query": kwargs["env"].get("QUERY_STRING"),
         }).encode()
         header = b"".join((
             b"HTTP/1.1 200 OK\n",
@@ -120,23 +120,10 @@ class CgiFixtureTest(object):
     setup.py; it is not sufficient to add the source directory to PYTHONPATH.
 
     """
-    @pytest.mark.usefixtures("run")
-    @pytest.mark.parametrize("cgi", ["/path/to/script"], indirect=True)
-    def test_get_local(self, cgi):
-        """ Test the get() method.
-
-        """
-        cgi.get({"param": 123})
-        assert 200 == cgi.status
-        assert "application/json" == cgi.header["content-type"]
-        assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
-        content = loads(cgi.content)
-        assert "param=123" == content["env"]["QUERY_STRING"]
-        return
-
-    @pytest.mark.usefixtures("urlopen")
-    @pytest.mark.parametrize("cgi", ["https://www.example.com"], indirect=True)
-    def test_get_remote(self, cgi):
+    @pytest.mark.usefixtures("run", "urlopen")
+    @pytest.mark.parametrize("cgi", ["/cgi", "https://www.example.com/cgi"],
+                             indirect=True)
+    def test_get(self, cgi):
         """ Test the get() method.
 
         """
@@ -149,29 +136,11 @@ class CgiFixtureTest(object):
         assert not content["data"]
         return
 
-    @pytest.mark.usefixtures("run")
-    @pytest.mark.parametrize("cgi", ["/path/to/script"], indirect=True)
-    @pytest.mark.parametrize("data", ["param=123", {"param": 123}])
-    def test_post_local(self, cgi, data):
-        """ Test the post() method.
-
-        The parametrization tests the method with both normal data and query
-        parameters.
-
-        """
-        cgi.post(data)
-        assert 200 == cgi.status
-        assert "application/json" == cgi.header["content-type"]
-        assert ["name=cookie1", "name=cookie2"] == cgi.header["set-cookie"]
-        content = loads(cgi.content)
-        assert "param=123" == content["stdin"]
-        return
-
-
-    @pytest.mark.usefixtures("urlopen")
-    @pytest.mark.parametrize("cgi", ["https://www.example.com"], indirect=True)
+    @pytest.mark.usefixtures("run", "urlopen")
+    @pytest.mark.parametrize("cgi", ["/cgi", "https://www.example.com/cgi"],
+                             indirect=True)
     @pytest.mark.parametrize("data", [b"param=123", {"param": 123}])
-    def test_post_remote(self, cgi, data):
+    def test_post(self, cgi, data):
         """ Test the post() method.
 
         The parametrization tests the method with both normal data and query

@@ -63,8 +63,12 @@ def run(monkeypatch):
     """
     def mock_run(*_, **kwargs):
         """ Create a mock external process result for testing. """
+        try:
+            data = kwargs.get("input").decode()
+        except AttributeError:
+            data = None
         content = dumps({
-            "data": kwargs["input"].decode() if "input" in kwargs else None,
+            "data": data,
             "query": kwargs["env"].get("QUERY_STRING"),
         }).encode()
         header = b"".join((

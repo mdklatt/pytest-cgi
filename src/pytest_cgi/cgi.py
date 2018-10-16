@@ -19,10 +19,10 @@ import pytest
 __all__ = "cgi",
 
 
-class _CgiFixture(object):
-    """ Execute an external CGI script.
+class _Script(object):
+    """ Abstract base class for a CGI script invocation.
 
-    The application is expected to output an HTTP response.
+    The called script is expected to output an HTTP response.
 
     :var self.status: HTTP status code
     :var self.header: HTTP header values
@@ -31,7 +31,7 @@ class _CgiFixture(object):
     def __init__(self, script):
         """ Initialize this object.
 
-        :param script: location of the CGI script
+        :param script: CGI script URL or local path
         """
         self.header = {}
         self.content = None
@@ -55,10 +55,8 @@ class _CgiFixture(object):
         raise NotImplementedError
 
 
-class _CgiRemote(_CgiFixture):
-    """ Execute a remote CGI script.
-
-    The application is called via its URL.
+class LocalScript(_Script):
+    """ Invoke a local CGI script via the command line.
 
     """
     def get(self, query):
@@ -66,80 +64,11 @@ class _CgiRemote(_CgiFixture):
 
         :param query: dict-like object of query parameters
         """
-        url = "?".join((self._script, urlencode(query, doseq=True)))
-        self._call(url, "GET")
-        return
-
-    def post(self, data, mime=None):
-        """ Execute a POST request.
-
-        :param data: binary data or dict-like object of query parameters
-        :param mime: data MIME type
-        """
-        if isinstance(data, dict):
-            data = urlencode(data, doseq=True).encode()
-            mime = "application/x-www-form-urlencoded"
-        headers = {
-            "Content-Type": mime,
-            "Content-Length": len(data)
-        }
-        self._call(self._script, "POST", data, headers)
-        return
-
-    def _call(self, url, method, data=None, headers=None):
-        """
-
-        :param data: binary data
-        :param headers: dict-like mapping of HTTP headers
-        """
-        if not headers:
-            headers = {}
-        request = Request(url, data, headers, method=method)
-        with urlopen(request) as response:
-            self.content = response.read()
-        self.status = response.getcode()
-        for key, value in response.headers.items():
-            # The headers object is dict-like but supports multiple items with
-            # the same key, e.g. for Set-Cookie headers.
-            key = key.lower()  # field names are not case sensitive
-            try:
-                self.header[key].append(value)
-            except KeyError:
-                # First instance of this key.
-                self.header[key] = value
-            except AttributeError:
-                # Second instance of this key, start a list.
-                self.header[key] = [self.header[key], value]
-        return
-
-
-class _CgiLocal(_CgiFixture):
-    """ Execute a local CGI script.
-
-    The fixture simulates a CGI request environment for the scrpt.
-
-    """
-    def __init__(self, script):
-        """ Initialize this object.
-
-        :param script: path to local CGI script
-        """
-        super(_CgiLocal, self).__init__(script)
-        self._env = {}
-        return
-
-    def get(self, query):
-        """ Execute a GET request.
-
-        :param query: dict-like object of query parameters
-        """
-        self._env.update({
+        env = {
             "REQUEST_METHOD": "GET",
             "QUERY_STRING": urlencode(query, doseq=True),
-        })
-        args = split(self._script)
-        process = run(args, stdout=PIPE, stderr=PIPE, env=self._env)
-        self._response(process.stdout)
+        }
+        self._call(env)
         return
 
     def post(self, data, mime="text/plain"):
@@ -151,14 +80,20 @@ class _CgiLocal(_CgiFixture):
         if isinstance(data, dict):
             data = urlencode(data, doseq=True).encode()
             mime = "application/x-www-form-urlencoded"
-        self._env.update({
+        env = {
             "REQUEST_METHOD": "POST",
             "CONTENT_LENGTH": len(data),
             "CONTENT_TYPE": mime,
-        })
+        }
+        self._call(env, data)
+        return
+
+    def _call(self, env, data=None):
+        """ Call a local CGI script via the command line
+
+        """
         args = split(self._script)
-        process = run(args, input=data, stdout=PIPE, stderr=PIPE,
-                      env=self._env)
+        process = run(args, input=data, stdout=PIPE, stderr=PIPE, env=env)
         self._response(process.stdout)
         return
 
@@ -194,9 +129,65 @@ class _CgiLocal(_CgiFixture):
         return
 
 
+class RemoteScript(_Script):
+    """ Invoke a remote CGI script via a URL.
+
+    """
+    def get(self, query):
+        """ Execute a GET request.
+
+        :param query: dict-like object of query parameters
+        """
+        url = "?".join((self._script, urlencode(query, doseq=True)))
+        self._call(url, "GET")
+        return
+
+    def post(self, data, mime=None):
+        """ Execute a POST request.
+
+        :param data: binary data or dict-like object of query parameters
+        :param mime: data MIME type
+        """
+        if isinstance(data, dict):
+            data = urlencode(data, doseq=True).encode()
+            mime = "application/x-www-form-urlencoded"
+        headers = {
+            "Content-Type": mime,
+            "Content-Length": len(data)
+        }
+        self._call(self._script, "POST", data, headers)
+        return
+
+    def _call(self, url, method, data=None, headers=None):
+        """ Call a CGI script via URL.
+
+        :param url: CGI script URL
+        :param method: request method (GET or POST)
+        :param data: binary data
+        :param headers: dict-like mapping of HTTP headers
+        """
+        request = Request(url, data, headers or {}, method=method)
+        with urlopen(request) as response:
+            self.content = response.read()
+        self.status = response.getcode()
+        for key, value in response.headers.items():
+            # The headers object is dict-like but supports multiple items with
+            # the same key, e.g. for Set-Cookie headers.
+            key = key.lower()  # field names are not case sensitive
+            try:
+                self.header[key].append(value)
+            except KeyError:
+                # First instance of this key.
+                self.header[key] = value
+            except AttributeError:
+                # Second instance of this key, start a list.
+                self.header[key] = [self.header[key], value]
+        return
+
+
 @pytest.fixture
 def cgi(request):
-    """ Create a fixture.
+    """ Create a pytest fixture.
 
     The CGI script to execute is passed in as the parameter of the pytest
     request context.
@@ -206,8 +197,10 @@ def cgi(request):
     """
     script = request.param
     scheme = urlparse(request.param).scheme
-    if scheme.startswith("http"):
-        return _CgiRemote(script)
-    elif scheme:
+    if not scheme:
+        fixture = LocalScript(script)
+    elif scheme.startswith("http"):
+        fixture = RemoteScript(script)
+    else:
         raise ValueError(f"invalid scheme: {scheme:s}")
-    return _CgiLocal(script)
+    return fixture

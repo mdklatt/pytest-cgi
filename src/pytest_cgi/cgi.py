@@ -19,7 +19,7 @@ import pytest
 __all__ = "cgi",
 
 
-class _Script(object):
+class _Client(object):
     """ Abstract base class for a CGI script invocation.
 
     The called script is expected to output an HTTP response.
@@ -55,7 +55,7 @@ class _Script(object):
         raise NotImplementedError
 
 
-class LocalScript(_Script):
+class LocalClient(_Client):
     """ Invoke a local CGI script via the command line.
 
     """
@@ -129,7 +129,7 @@ class LocalScript(_Script):
         return
 
 
-class RemoteScript(_Script):
+class RemoteClient(_Client):
     """ Invoke a remote CGI script via a URL.
 
     """
@@ -198,9 +198,9 @@ def cgi(request):
     script = request.param
     scheme = urlparse(request.param).scheme
     if not scheme:
-        fixture = LocalScript(script)
-    elif scheme.startswith("http"):
-        fixture = RemoteScript(script)
+        fixture = LocalClient(script)
+    elif scheme.startswith("http"):  # http/s
+        fixture = RemoteClient(script)
     else:
         raise ValueError(f"invalid scheme: {scheme:s}")
     return fixture

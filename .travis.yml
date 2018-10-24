@@ -5,8 +5,8 @@
 language: python
 
 python:
-  # TODO: Add 3.7 once Travis begins supporting it.
   - "3.6"
+  - "3.7-dev"
 
 branches:
   only:
@@ -16,7 +16,8 @@ branches:
 sudo: false
 
 install:
-  - python -m pip install . -r requirements.txt
+  - python -m pip install pipenv
+  - pipenv install --dev
 
 script:
-  - pytest --verbose test/
+  - pipenv run pytest --verbose test/

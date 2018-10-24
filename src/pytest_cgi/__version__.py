@@ -1,4 +1,4 @@
-""" The current version of the serial.core library.
+""" The current version of the pytest-cgi plugin.
 
 This project uses the Semantic Versioning scheme in conjunction with PEP 0440:
 
@@ -15,4 +15,4 @@ Version 0.x should be considered a development version with an unstable API,
 and backwards compatibility is not guaranteed for minor releases.
 
 """
-__version__ = "0.2.1dev1"
+__version__ = "0.2.1dev2"

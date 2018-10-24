@@ -1,7 +1,7 @@
 """ Implementation of the `cgi` test fixture.
 
-This will capture the output of an external application executed via a CGI
-request, e.g. GET or POST.
+This will capture the output of an external script executed via a CGI request,
+i.e. GET or POST.
 
 """
 from io import BytesIO
@@ -89,7 +89,7 @@ class LocalClient(_Client):
         return
 
     def _call(self, env, data=None):
-        """ Call a local CGI script via the command line
+        """ Call a local CGI script via the command line.
 
         """
         args = split(self._script)
@@ -102,8 +102,6 @@ class LocalClient(_Client):
 
         :param response: sequence of bytes containing the HTTP response
         """
-        # Be lenient about accepting non-standard headers.
-        # <https://tools.ietf.org/html/rfc7230>
         headers = []
         with BytesIO(response) as stream:
             for line in stream:
@@ -113,6 +111,8 @@ class LocalClient(_Client):
                 headers.append(line)
             self.content = stream.read()
         if headers[0].lstrip().startswith("HTTP"):
+            # Be lenient about accepting non-standard headers.
+            # <https://tools.ietf.org/html/rfc7230>
             self.status = int(headers[0].split()[1])  # integer status
             headers.pop(0)
         for line in headers:

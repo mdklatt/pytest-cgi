@@ -1,5 +1,0 @@
-## Python requirements for using the pytest-cgi plugin.
-##
-##   pip install --requirement=requirements.txt
-##
-pytest>=3.5

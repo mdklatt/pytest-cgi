@@ -20,7 +20,9 @@ _CONFIG = {
     "entry_points": {
         "pytest11": ["cgi = pytest_cgi.cgi"],
     },
-    "install_requires": ["pytest>=3.5.0"]  # TODO: get from requirements?
+    "install_requires": [
+        "pytest>=3.5"
+    ]
 }
 
 

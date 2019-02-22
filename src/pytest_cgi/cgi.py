@@ -58,7 +58,17 @@ class _Client(object):
 class LocalClient(_Client):
     """ Invoke a local CGI script via the command line.
 
+    :var self.stderr: STDERR output from local script
     """
+    def __init__(self, script):
+        """ Initialize this object.
+
+        :param script: CGI script path
+        """
+        super(LocalClient, self).__init__(script)
+        self.stderr = None
+        return
+
     def get(self, query):
         """ Execute a GET request.
 
@@ -95,6 +105,7 @@ class LocalClient(_Client):
         args = split(self._script)
         process = run(args, input=data, stdout=PIPE, stderr=PIPE, env=env)
         self._response(process.stdout)
+        self.stderr = process.stderr.decode()
         return
 
     def _response(self, response):
@@ -105,6 +116,7 @@ class LocalClient(_Client):
         headers = []
         with BytesIO(response) as stream:
             for line in stream:
+                # Get header lines.
                 line = line.decode().strip()
                 if not line:  # found the end of the header
                     break
@@ -119,6 +131,7 @@ class LocalClient(_Client):
         except IndexError:  # empty headers
             pass
         for line in headers:
+            # Convert headers to a dict.
             key, value = (item.strip() for item in line.split(":"))
             key = key.lower()  # field names are not case sensitive
             try:

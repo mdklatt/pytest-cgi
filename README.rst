@@ -12,7 +12,7 @@ pytest-cgi
 |badge|
 
 The `pytest-cgi`_ plugin is useful for black box testing of CGI scripts using
-`pytest`_. Install the plugin as a normal Python packages, and the ``cgi``
+`pytest`_. Install the plugin as a normal Python package, and the ``cgi``
 fixture object will become available. This fixture will invoke a remote script
 via its URL or a local script via a simulated CGI request.
 

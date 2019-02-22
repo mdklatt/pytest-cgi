@@ -25,6 +25,7 @@ class _MockCompletedProcess(object):
         :param stdout: sequence of bytes sent to STDOUT
         """
         self.stdout = stdout
+        self.stderr = b"unexpected error"
         self.returncode = 0
         self.check_returncode = lambda: None  # always a "success"
         return

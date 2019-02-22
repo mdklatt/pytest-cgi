@@ -132,11 +132,11 @@ class CgiFixtureTest(object):
 
         """
         cgi.get({"param": 123})
-        assert 200 == cgi.status
-        assert "application/json" == cgi.headers["content-type"]
-        assert ["name=cookie1", "name=cookie2"] == cgi.headers["set-cookie"]
+        assert cgi.status == 200
+        assert cgi.headers["content-type"] == "application/json"
+        assert cgi.headers["set-cookie"] == ["name=cookie1", "name=cookie2"]
         content = loads(cgi.content)
-        assert "param=123" == content["query"]
+        assert content["query"] == "param=123"
         assert not content["data"]
         return
 
@@ -152,11 +152,11 @@ class CgiFixtureTest(object):
 
         """
         cgi.post(data)
-        assert 200 == cgi.status
-        assert "application/json" == cgi.headers["content-type"]
-        assert ["name=cookie1", "name=cookie2"] == cgi.headers["set-cookie"]
+        assert cgi.status == 200
+        assert cgi.headers["content-type"] == "application/json"
+        assert cgi.headers["set-cookie"] == ["name=cookie1", "name=cookie2"]
         content = loads(cgi.content)
-        assert "param=123" == content["data"]
+        assert content["data"] == "param=123"
         assert not content["query"]
         return
 

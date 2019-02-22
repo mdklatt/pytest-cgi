@@ -106,15 +106,18 @@ class LocalClient(_Client):
         with BytesIO(response) as stream:
             for line in stream:
                 line = line.decode().strip()
-                if not line:
+                if not line:  # found the end of the header
                     break
                 headers.append(line)
             self.content = stream.read()
-        if headers[0].lstrip().startswith("HTTP"):
-            # Be lenient about accepting non-standard headers.
-            # <https://tools.ietf.org/html/rfc7230>
-            self.status = int(headers[0].split()[1])  # integer status
-            headers.pop(0)
+        try:
+            if headers[0].lstrip().lower().startswith("http"):
+                # Be lenient about accepting non-standard headers.
+                # <https://tools.ietf.org/html/rfc7230>
+                self.status = int(headers[0].split()[1])  # integer status
+                headers.pop(0)
+        except IndexError:  # empty headers
+            pass
         for line in headers:
             key, value = (item.strip() for item in line.split(":"))
             key = key.lower()  # field names are not case sensitive

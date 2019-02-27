@@ -132,7 +132,7 @@ class LocalClient(_Client):
             pass
         for line in headers:
             # Convert headers to a dict.
-            key, value = (item.strip() for item in line.split(":"))
+            key, value = (item.strip() for item in line.split(":", 1))
             key = key.lower()  # field names are not case sensitive
             try:
                 self.headers[key].append(value)

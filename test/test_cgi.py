@@ -75,6 +75,7 @@ def run(monkeypatch):
         headers = b"".join((
             b"HTTP/1.1 200 OK\n",
             b"Content-Type: application/json\n",
+            b"Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\n",
             "Content-Length: {:d}\n".format(len(content)).encode(),
             b"Set-Cookie: name=cookie1\n",
             b"Set-Cookie: name=cookie2\n",
@@ -103,6 +104,7 @@ def urlopen(monkeypatch):
         }).encode()
         fields = (
             ("Content-Type", "application/json"),
+            ("Last-Modified", "Thu, 01 Jan 1970 00:00:00 GMT"),
             ("Set-Cookie", "name=cookie1"),
             ("Set-Cookie", "name=cookie2"),
         )

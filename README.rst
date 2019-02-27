@@ -17,8 +17,9 @@ fixture object will become available. This fixture will invoke a remote script
 via its URL or a local script via a simulated CGI request.
 
 The fixture takes one parameter, the script location. The script is invoked via
-the ``get()`` or ``post()`` method, and the captured output will be available
-in the ``status``, ``headers``, and ``content`` attributes.
+the ``get()`` or ``post()`` method, and its captured output is available in the
+``status``, ``headers``, and ``content`` attributes. For local scripts, a
+``stderr`` attribute is also available.
 
 
 .. code-block:: python

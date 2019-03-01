@@ -92,7 +92,7 @@ class LocalClient(_Client):
             mime = "application/x-www-form-urlencoded"
         env = {
             "REQUEST_METHOD": "POST",
-            "CONTENT_LENGTH": len(data),
+            "CONTENT_LENGTH": str(len(data)),
             "CONTENT_TYPE": mime,
         }
         self._call(env, data)

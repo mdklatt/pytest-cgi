@@ -76,7 +76,7 @@ def run(monkeypatch):
             b"HTTP/1.1 200 OK\n",
             b"Content-Type: application/json\n",
             b"Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\n",
-            "Content-Length: {:d}\n".format(len(content)).encode(),
+            f"Content-Length: {len(content):d}\n".encode(),
             b"Set-Cookie: name=cookie1\n",
             b"Set-Cookie: name=cookie2\n",
             b"\n",

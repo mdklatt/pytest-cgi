@@ -10,7 +10,10 @@ environment or setuptools develop mode to test against the development version.
 from http.client import HTTPMessage
 from json import dumps
 from json import loads
+from subprocess import run as _run
+from sys import executable
 from urllib.parse import urlparse
+
 
 import pytest
 
@@ -19,15 +22,15 @@ class _MockCompletedProcess(object):
     """ Mock a subprocess.CompleteProcess instance.
 
     """
-    def __init__(self, stdout):
+    def __init__(self, stdout, stderr=b""):
         """ Initialize this object.
 
         :param stdout: sequence of bytes sent to STDOUT
         """
         self.stdout = stdout
-        self.stderr = b"unexpected error"
+        self.stderr = stderr
         self.returncode = 0
-        self.check_returncode = lambda: None  # always a "success"
+        self.check_returncode = lambda: None  # do nothing, always a "success"
         return
 
 
@@ -64,6 +67,7 @@ def run(monkeypatch):
     """
     def mock_run(*_, **kwargs):
         """ Create a mock external process result for testing. """
+        _run((executable, "--version"), **kwargs)  # validate kwargs
         try:
             data = kwargs.get("input").decode()
         except AttributeError:

@@ -24,18 +24,19 @@ the ``get()`` or ``post()`` method, and its captured output is available in the
 
 .. code-block:: python
 
-    import pytest  # loads `cgi` fixture
+    import pytest  # `cgi` fixture is loaded automatically
 
-    @pytest.mark.parametrize("cgi", ["/cgi", "https://www.example.com/cgi"],
-                             indirect=True)
+    _SCRIPTS = "/script.cgi", "https://www.example.com/script.cgi"
+
+    @pytest.mark.parametrize("cgi", _SCRIPTS, indirect=True)
     def test_post(cgi):
-        """ Test a local and remote script with the `cgi` fixture.
+        """ Test a local and remote version of a script.
 
         """
         # For post(), can send form values or binary data with a MIME type.
-        cgi.post({"param": "abc"})
-        assert 200 == cgi.status
-        assert "text/plain" == cgi.headers["content-type"]
-        assert "called with param 'abc'" == cgi.content.decode()
+        cgi.post({"param": "abc"})  # application/x-www-form-urlencoded
+        assert cgi.status == 200
+        assert cgi.headers["content-type"] == "text/plain"
+        assert cgi.content.decode() == "param: 'abc'"
         return
 

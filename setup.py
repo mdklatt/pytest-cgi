@@ -4,12 +4,13 @@ The implementation is installed as a normal Python package, and an entry point
 is created to expose the package to pytest as a plugin.
 
 """
-from os.path import join
+from pathlib import Path
+
 from setuptools import find_packages
 from setuptools import setup
 
 
-_CONFIG = {
+_config = {
     "name": "pytest-cgi",
     "author": "Michael Klatt",
     "author_email": "mdklatt@alumni.ou.edu",
@@ -26,25 +27,21 @@ _CONFIG = {
 }
 
 
-def _version():
-    """ Get the local package version.
-
-    """
-    path = join("src", "pytest_cgi", "__version__.py")
-    namespace = {}
-    with open(path) as stream:
-        exec(stream.read(), namespace)
-    return namespace["__version__"]
-
-
 def main():
-    """ Execute the setup commands.
+    """ Execute the setup command.
 
     """
-    _CONFIG.update({
-        "version": _version()
+    def version():
+        """ Get the local package version. """
+        namespace = {}
+        path = Path("src", "pytest_cgi", "__version__.py")
+        exec(path.read_text(), namespace)
+        return namespace["__version__"]
+
+    _config.update({
+        "version": version(),
     })
-    setup(**_CONFIG)
+    setup(**_config)
     return 0
 
 

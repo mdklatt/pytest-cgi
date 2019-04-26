@@ -16,8 +16,7 @@ branches:
 sudo: false
 
 install:
-  - python -m pip install pipenv
-  - pipenv install --dev
+  - python -m pip install -r requirements.txt -e .
 
 script:
-  - pipenv run pytest --verbose test/
+  - python -m pytest --verbose test/

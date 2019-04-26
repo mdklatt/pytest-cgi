@@ -21,7 +21,7 @@ _CONFIG = {
         "pytest11": ["cgi = pytest_cgi.cgi"],
     },
     "install_requires": [
-        "pytest>=3.5"
+        "pytest>=4.0"
     ]
 }
 

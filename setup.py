@@ -27,7 +27,7 @@ _config = {
 }
 
 
-def main():
+def main() -> int:
     """ Execute the setup command.
 
     """

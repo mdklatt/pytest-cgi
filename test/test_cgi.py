@@ -90,12 +90,11 @@ class LocalCgiFixtureTest(object):
 
     """
     @pytest.mark.usefixtures("run", "urlopen")
-    @pytest.mark.parametrize("cgi_local", ["/cgi"], indirect=True)
     def test_get(self, cgi_local):
         """ Test the get() method.
 
         """
-        cgi_local.get({"param": 123})
+        cgi_local.get("/cgi", {"param": 123})
         assert cgi_local.status == 200
         assert cgi_local.headers["content-type"] == "application/json"
         assert cgi_local.headers["set-cookie"] == [
@@ -108,7 +107,6 @@ class LocalCgiFixtureTest(object):
         return
 
     @pytest.mark.usefixtures("run", "urlopen")
-    @pytest.mark.parametrize("cgi_local", ["/cgi"], indirect=True)
     @pytest.mark.parametrize("data", [b"param=123", {"param": 123}])
     def test_post(self, cgi_local, data):
         """ Test the post() method.
@@ -117,10 +115,13 @@ class LocalCgiFixtureTest(object):
         parameters.
 
         """
-        cgi_local.post(data)
+        cgi_local.post("/cgi", data)
         assert cgi_local.status == 200
         assert cgi_local.headers["content-type"] == "application/json"
-        assert cgi_local.headers["set-cookie"] == ["name=cookie1", "name=cookie2"]
+        assert cgi_local.headers["set-cookie"] == [
+            "name=cookie1",
+            "name=cookie2",
+        ]
         content = loads(cgi_local.content)
         assert content["data"] == "param=123"
         assert not content["query"]
@@ -135,18 +136,16 @@ class RemoteCgiFixtureTest(object):
 
     """
     @pytest.mark.usefixtures("run", "urlopen")
-    @pytest.mark.parametrize("cgi_remote", ["https://www.example.com/cgi"],
-                             indirect=True)
     def test_get(self, cgi_remote):
         """ Test the get() method.
 
         """
-        cgi_remote.get({"param": 123})
+        cgi_remote.get("https://www.example.com/cgi", {"param": 123})
         assert cgi_remote.status == 200
         assert cgi_remote.headers["content-type"] == "application/json"
         assert cgi_remote.headers["set-cookie"] == [
             "name=cookie1",
-            "name=cookie2"
+            "name=cookie2",
         ]
         content = loads(cgi_remote.content)
         assert content["query"] == "param=123"
@@ -154,8 +153,6 @@ class RemoteCgiFixtureTest(object):
         return
 
     @pytest.mark.usefixtures("run", "urlopen")
-    @pytest.mark.parametrize("cgi_remote", ["https://www.example.com/cgi"],
-                             indirect=True)
     @pytest.mark.parametrize("data", [b"param=123", {"param": 123}])
     def test_post(self, cgi_remote, data):
         """ Test the post() method.
@@ -164,10 +161,13 @@ class RemoteCgiFixtureTest(object):
         parameters.
 
         """
-        cgi_remote.post(data)
+        cgi_remote.post("https://www.example.com/cgi", data)
         assert cgi_remote.status == 200
         assert cgi_remote.headers["content-type"] == "application/json"
-        assert cgi_remote.headers["set-cookie"] == ["name=cookie1", "name=cookie2"]
+        assert cgi_remote.headers["set-cookie"] == [
+            "name=cookie1",
+            "name=cookie2",
+        ]
         content = loads(cgi_remote.content)
         assert content["data"] == "param=123"
         assert not content["query"]

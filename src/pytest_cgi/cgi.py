@@ -5,9 +5,11 @@ i.e. GET or POST.
 
 """
 from io import BytesIO
+from pathlib import Path
 from shlex import split
 from subprocess import PIPE
 from subprocess import run
+from typing import Union
 from urllib.parse import urlencode
 from urllib.request import Request
 from urllib.request import urlopen
@@ -15,77 +17,45 @@ from urllib.request import urlopen
 import pytest
 
 
-__all__ = "cgi",
+__all__ = "cgi_local", "cgi_remote"
 
 
-# TODO: Don't really need this base class...?
-
-class _Client(object):
-    """ Abstract base class for a CGI script invocation.
-
-    The called script is expected to output an HTTP response.
+class LocalClient(object):
+    """ Invoke a local CGI script via the command line.
 
     :var self.status: HTTP status code
     :var self.header: HTTP header values
     :var self.content: HTTP content
+    :var self.stderr: STDERR output from local script
     """
-    def __init__(self, script):
+    def __init__(self):
         """ Initialize this object.
 
-        :param script: CGI script URL or local path
         """
         self.headers = {}
         self.content = None
         self.status = None
-        self._script = script  # TODO: eliminate this
-        return
-
-    def get(self, query):
-        """ Execute a GET request.
-
-        :param query: dict-like object of query parameters
-        """
-        raise NotImplementedError
-
-    def post(self, data, mime):
-        """ Execute a POST request.
-
-        :param data: binary data or dict-like object of query parameters
-        :param mime: data MIME type
-        """
-        raise NotImplementedError
-
-
-class LocalClient(_Client):
-    """ Invoke a local CGI script via the command line.
-
-    :var self.stderr: STDERR output from local script
-    """
-    def __init__(self, script):
-        """ Initialize this object.
-
-        :param script: CGI script path
-        """
-        super(LocalClient, self).__init__(script)
         self.stderr = None
         return
 
-    def get(self, query):
+    def get(self, script: Union[str, Path], query: dict):
         """ Execute a GET request.
 
-        :param query: dict-like object of query parameters
+        :param script: script path
+        :param query: mapping of query parameters
         """
         env = {
             "REQUEST_METHOD": "GET",
             "QUERY_STRING": urlencode(query, doseq=True),
         }
-        self._call(env)
+        self._call(script, env)
         return
 
-    def post(self, data, mime="text/plain"):
+    def post(self, script: Union[str, Path], data, mime="text/plain"):
         """ Execute a POST request.
 
-        :param data: text data or dict-like object of query parameters
+        :param script: script path
+        :param data: text data or mapping of query parameters
         :param mime: data MIME type
         """
         if isinstance(data, dict):
@@ -96,23 +66,26 @@ class LocalClient(_Client):
             "CONTENT_LENGTH": str(len(data)),
             "CONTENT_TYPE": mime,
         }
-        self._call(env, data)
+        self._call(script, env, data)
         return
 
-    def _call(self, env, data=None):
+    def _call(self, path: Union[Path, str], env: dict, data=None):
         """ Call a local CGI script via the command line.
 
+        :param path: script path
+        :param env: mapping of environment variables
+        :param data: input data
         """
-        args = split(self._script)
+        args = split(str(path))
         process = run(args, input=data, stdout=PIPE, stderr=PIPE, env=env)
         self._response(process.stdout)
         self.stderr = process.stderr.decode()
         return
 
-    def _response(self, response):
+    def _response(self, response: bytes):
         """ Parse the response returned by the application.
 
-        :param response: sequence of bytes containing the HTTP response
+        :param response: HTTP response
         """
         headers = []
         with BytesIO(response) as stream:
@@ -146,23 +119,37 @@ class LocalClient(_Client):
         return
 
 
-class RemoteClient(_Client):
+class RemoteClient(object):
     """ Invoke a remote CGI script via a URL.
 
+    :var self.status: HTTP status code
+    :var self.header: HTTP header values
+    :var self.content: HTTP content
     """
-    def get(self, query):
+    def __init__(self):
+        """ Initialize this object.
+
+        """
+        self.headers = {}
+        self.content = None
+        self.status = None
+        return
+
+    def get(self, script: str, query: dict):
         """ Execute a GET request.
 
+        :param script: script URL
         :param query: dict-like object of query parameters
         """
-        url = "?".join((self._script, urlencode(query, doseq=True)))
+        url = "?".join((script, urlencode(query, doseq=True)))
         self._call(url, "GET")
         return
 
-    def post(self, data, mime=None):
+    def post(self, script: str, data: Union[bytes, dict], mime="text/plain"):
         """ Execute a POST request.
 
-        :param data: binary data or dict-like object of query parameters
+        :param script: script URL
+        :param data: binary data or mapping of query parameters
         :param mime: data MIME type
         """
         if isinstance(data, dict):
@@ -172,13 +159,13 @@ class RemoteClient(_Client):
             "Content-Type": mime,
             "Content-Length": len(data)
         }
-        self._call(self._script, "POST", data, headers)
+        self._call(script, "POST", data, headers)
         return
 
-    def _call(self, url, method, data=None, headers=None):
+    def _call(self, url: str, method: str, data=None, headers=None):
         """ Call a CGI script via URL.
 
-        :param url: CGI script URL
+        :param url: script URL
         :param method: request method (GET or POST)
         :param data: binary data
         :param headers: dict-like mapping of HTTP headers
@@ -203,22 +190,18 @@ class RemoteClient(_Client):
 
 
 @pytest.fixture
-def cgi_local(request):
+def cgi_local():
     """ Create a pytest fixture for local CGI execution.
 
-    :param request: pytest request context
     :return: fixture object
     """
-    script = request.param
-    return LocalClient(script)
+    return LocalClient()
 
 
 @pytest.fixture
-def cgi_remote(request):
+def cgi_remote():
     """ Create a pytest fixture for remote CGI execution.
 
-    :param request: pytest request context
     :return: fixture object
     """
-    script = request.param
-    return RemoteClient(script)
+    return RemoteClient()

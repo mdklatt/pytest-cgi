@@ -9,7 +9,6 @@ from shlex import split
 from subprocess import PIPE
 from subprocess import run
 from urllib.parse import urlencode
-from urllib.parse import urlparse
 from urllib.request import Request
 from urllib.request import urlopen
 
@@ -18,6 +17,8 @@ import pytest
 
 __all__ = "cgi",
 
+
+# TODO: Don't really need this base class...?
 
 class _Client(object):
     """ Abstract base class for a CGI script invocation.
@@ -36,7 +37,7 @@ class _Client(object):
         self.headers = {}
         self.content = None
         self.status = None
-        self._script = script
+        self._script = script  # TODO: eliminate this
         return
 
     def get(self, query):
@@ -202,21 +203,22 @@ class RemoteClient(_Client):
 
 
 @pytest.fixture
-def cgi(request):
-    """ Create a pytest fixture.
-
-    The CGI script to execute is passed in as the parameter of the pytest
-    request context.
+def cgi_local(request):
+    """ Create a pytest fixture for local CGI execution.
 
     :param request: pytest request context
-    :return: new fixture object
+    :return: fixture object
     """
     script = request.param
-    scheme = urlparse(request.param).scheme
-    if not scheme:
-        fixture = LocalClient(script)
-    elif scheme.startswith("http"):  # http/s
-        fixture = RemoteClient(script)
-    else:
-        raise ValueError(f"invalid scheme: {scheme:s}")
-    return fixture
+    return LocalClient(script)
+
+
+@pytest.fixture
+def cgi_remote(request):
+    """ Create a pytest fixture for remote CGI execution.
+
+    :param request: pytest request context
+    :return: fixture object
+    """
+    script = request.param
+    return RemoteClient(script)

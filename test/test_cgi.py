@@ -18,48 +18,6 @@ from urllib.parse import urlparse
 import pytest
 
 
-class _MockCompletedProcess(object):
-    """ Mock a subprocess.CompleteProcess instance.
-
-    """
-    def __init__(self, stdout, stderr=b""):
-        """ Initialize this object.
-
-        :param stdout: sequence of bytes sent to STDOUT
-        """
-        self.stdout = stdout
-        self.stderr = stderr
-        self.returncode = 0
-        self.check_returncode = lambda: None  # do nothing, always a "success"
-        return
-
-
-class _MockResponse(object):
-    """ A mock urllib.response.
-
-    """
-    def __init__(self, data, headers):
-        """ Initialize this object.
-
-        """
-        self.headers = headers
-        self.read = lambda: data
-        self.getcode = lambda: 200
-        return
-
-    def __enter__(self):
-        """ Enter a runtime context.
-
-        """
-        return self
-
-    def __exit__(self, *args):
-        """ Exit a runtime context.
-
-        """
-        return
-
-
 @pytest.fixture
 def run(monkeypatch):
     """ Mock the subprocess.run() function for testing.
@@ -124,47 +82,137 @@ def urlopen(monkeypatch):
     return
 
 
-class CgiFixtureTest(object):
-    """ Unit tests for the cgi fixture.
+class LocalCgiFixtureTest(object):
+    """ Unit tests for the cgi_local fixture.
 
     This requires the plugin to be installed into the test environment using
     setup.py; it is not sufficient to add the source directory to PYTHONPATH.
 
     """
     @pytest.mark.usefixtures("run", "urlopen")
-    @pytest.mark.parametrize("cgi", ["/cgi", "https://www.example.com/cgi"],
-                             indirect=True)
-    def test_get(self, cgi):
+    @pytest.mark.parametrize("cgi_local", ["/cgi"], indirect=True)
+    def test_get(self, cgi_local):
         """ Test the get() method.
 
         """
-        cgi.get({"param": 123})
-        assert cgi.status == 200
-        assert cgi.headers["content-type"] == "application/json"
-        assert cgi.headers["set-cookie"] == ["name=cookie1", "name=cookie2"]
-        content = loads(cgi.content)
+        cgi_local.get({"param": 123})
+        assert cgi_local.status == 200
+        assert cgi_local.headers["content-type"] == "application/json"
+        assert cgi_local.headers["set-cookie"] == [
+            "name=cookie1",
+            "name=cookie2"
+        ]
+        content = loads(cgi_local.content)
         assert content["query"] == "param=123"
         assert not content["data"]
         return
 
     @pytest.mark.usefixtures("run", "urlopen")
-    @pytest.mark.parametrize("cgi", ["/cgi", "https://www.example.com/cgi"],
-                             indirect=True)
+    @pytest.mark.parametrize("cgi_local", ["/cgi"], indirect=True)
     @pytest.mark.parametrize("data", [b"param=123", {"param": 123}])
-    def test_post(self, cgi, data):
+    def test_post(self, cgi_local, data):
         """ Test the post() method.
 
         The parametrization tests the method with both normal data and query
         parameters.
 
         """
-        cgi.post(data)
-        assert cgi.status == 200
-        assert cgi.headers["content-type"] == "application/json"
-        assert cgi.headers["set-cookie"] == ["name=cookie1", "name=cookie2"]
-        content = loads(cgi.content)
+        cgi_local.post(data)
+        assert cgi_local.status == 200
+        assert cgi_local.headers["content-type"] == "application/json"
+        assert cgi_local.headers["set-cookie"] == ["name=cookie1", "name=cookie2"]
+        content = loads(cgi_local.content)
         assert content["data"] == "param=123"
         assert not content["query"]
+        return
+
+
+class RemoteCgiFixtureTest(object):
+    """ Unit tests for the cgi_remote fixture.
+
+    This requires the plugin to be installed into the test environment using
+    setup.py; it is not sufficient to add the source directory to PYTHONPATH.
+
+    """
+    @pytest.mark.usefixtures("run", "urlopen")
+    @pytest.mark.parametrize("cgi_remote", ["https://www.example.com/cgi"],
+                             indirect=True)
+    def test_get(self, cgi_remote):
+        """ Test the get() method.
+
+        """
+        cgi_remote.get({"param": 123})
+        assert cgi_remote.status == 200
+        assert cgi_remote.headers["content-type"] == "application/json"
+        assert cgi_remote.headers["set-cookie"] == [
+            "name=cookie1",
+            "name=cookie2"
+        ]
+        content = loads(cgi_remote.content)
+        assert content["query"] == "param=123"
+        assert not content["data"]
+        return
+
+    @pytest.mark.usefixtures("run", "urlopen")
+    @pytest.mark.parametrize("cgi_remote", ["https://www.example.com/cgi"],
+                             indirect=True)
+    @pytest.mark.parametrize("data", [b"param=123", {"param": 123}])
+    def test_post(self, cgi_remote, data):
+        """ Test the post() method.
+
+        The parametrization tests the method with both normal data and query
+        parameters.
+
+        """
+        cgi_remote.post(data)
+        assert cgi_remote.status == 200
+        assert cgi_remote.headers["content-type"] == "application/json"
+        assert cgi_remote.headers["set-cookie"] == ["name=cookie1", "name=cookie2"]
+        content = loads(cgi_remote.content)
+        assert content["data"] == "param=123"
+        assert not content["query"]
+        return
+
+
+class _MockCompletedProcess(object):
+    """ Mock a subprocess.CompleteProcess instance.
+
+    """
+    def __init__(self, stdout, stderr=b""):
+        """ Initialize this object.
+
+        :param stdout: sequence of bytes sent to STDOUT
+        """
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = 0
+        self.check_returncode = lambda: None  # do nothing, always a "success"
+        return
+
+
+class _MockResponse(object):
+    """ A mock urllib.response.
+
+    """
+    def __init__(self, data, headers):
+        """ Initialize this object.
+
+        """
+        self.headers = headers
+        self.read = lambda: data
+        self.getcode = lambda: 200
+        return
+
+    def __enter__(self):
+        """ Enter a runtime context.
+
+        """
+        return self
+
+    def __exit__(self, *args):
+        """ Exit a runtime context.
+
+        """
         return
 
 
